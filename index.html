@@ -2,57 +2,42 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>Ultimate Interactive Christmas Tree</title>
+    <title>轻量互动圣诞树</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body { margin: 0; overflow: hidden; background-color: #000000; font-family: 'Arial', sans-serif; }
         
-        /* 视频反馈窗口 */
-        #video-container {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            width: 160px;
-            height: 120px;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 2px solid rgba(255, 215, 0, 0.3); /* 金色边框 */
-            z-index: 10;
-            transform: scaleX(-1);
-            opacity: 0.7;
-            transition: opacity 0.3s;
-        }
-        #video-container:hover { opacity: 1; }
-        #input_video { width: 100%; height: 100%; object-fit: cover; }
-
         /* UI 覆盖层 */
         #ui-layer {
             position: absolute;
             top: 20px;
             left: 20px;
-            color: #ffd700; /* 金色文字 */
+            color: #ffd700;
             z-index: 10;
             pointer-events: none;
             text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
         }
-        h1 { margin: 0; font-size: 24px; letter-spacing: 2px; }
-        p { font-size: 14px; opacity: 0.8; margin-top: 5px; }
+        h1 { margin: 0; font-size: 20px; letter-spacing: 1px; }
+        p { font-size: 12px; opacity: 0.8; margin-top: 5px; }
         .status { color: #ffffff; font-weight: bold; }
 
-        /* 全屏按钮 */
-        #fullscreen-btn {
+        /* 视频反馈窗口（可隐藏） */
+        #video-container {
             position: absolute;
-            top: 20px; right: 20px;
-            padding: 8px 15px;
-            background: rgba(255, 215, 0, 0.1);
-            border: 1px solid rgba(255, 215, 0, 0.6);
-            color: #ffd700;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: 0.3s;
-            z-index: 20;
-            font-size: 12px;
+            bottom: 10px;
+            right: 10px;
+            width: 120px; /* 更小 */
+            height: 90px; /* 更小 */
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            z-index: 10;
+            transform: scaleX(-1);
+            opacity: 0.5; /* 更低透明度 */
+            transition: opacity 0.3s;
         }
-        #fullscreen-btn:hover { background: rgba(255, 215, 0, 0.3); box-shadow: 0 0 10px rgba(255,215,0,0.5); }
+        #video-container:hover { opacity: 0.8; }
+        #input_video { width: 100%; height: 100%; object-fit: cover; }
 
         /* 加载指示器 */
         #loader {
@@ -60,21 +45,13 @@
             top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             color: #ffd700;
-            font-size: 18px;
+            font-size: 16px;
             z-index: 100;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+            text-shadow: 0 0 8px rgba(255, 215, 0, 0.8);
         }
     </style>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
@@ -82,156 +59,98 @@
 <body>
 
     <div id="ui-layer">
-        <h1>🎄 金色圣诞梦境</h1>
-        <p>状态: <span id="hand-status" class="status">等待摄像头...</span> (张开手掌炸开，握拳聚合)</p>
+        <h1>✨ 圣诞树 (轻量版)</h1>
+        <p>状态: <span id="hand-status" class="status">等待摄像头...</span></p>
     </div>
 
-    <button id="fullscreen-btn">⛶ FULLSCREEN</button>
-    <div id="loader">✨ 正在编织魔法...</div>
+    <div id="loader">✨ 正在加载魔法...</div>
 
     <div id="video-container">
         <video id="input_video"></video>
     </div>
 
 <script>
-    // ================= CONFIGURATION =================
-    const PARTICLE_COUNT = 1200; // 大幅增加粒子数量以匹配参考图
-    const TREE_HEIGHT = 45;
-    const TREE_BASE_RADIUS = 18;
-    
+    // ================= CONFIGURATION (调整为轻量级) =================
+    const PARTICLE_COUNT = 200; // 大幅减少粒子数量
+    const TREE_HEIGHT = 30;
+    const TREE_BASE_RADIUS = 10;
+
     // ================= THREE.JS SETUP =================
     const scene = new THREE.Scene();
-    // 移除迷雾，参考图背景是深邃的黑色
-    scene.background = new THREE.Color(0x000000);
+    scene.background = new THREE.Color(0x000000); // 黑色背景
 
-    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 20, 70); // 稍微拉远视角
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 500);
+    camera.position.set(0, 15, 50); // 调整相机位置
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.toneMapping = THREE.ReinhardToneMapping; // 色调映射，防止过曝
-    renderer.toneMappingExposure = 1.5;
+    renderer.setPixelRatio(window.devicePixelRatio); // 手机上可能较低
     document.body.appendChild(renderer.domElement);
 
-    // --- 灯光设置 (营造戏剧性) ---
-    const ambientLight = new THREE.AmbientLight(0x222222); // 基础环境光很暗
+    // --- 灯光设置 (简化) ---
+    const ambientLight = new THREE.AmbientLight(0x444444); // 适中环境光
     scene.add(ambientLight);
 
-    // 主光源：暖金色光
-    const mainLight = new THREE.PointLight(0xffd700, 1.5, 150);
-    mainLight.position.set(20, 30, 20);
-    scene.add(mainLight);
+    const pointLight = new THREE.PointLight(0xffcc00, 1.5, 100); // 一个主光源
+    pointLight.position.set(0, 20, 30);
+    scene.add(pointLight);
 
-    // 补光：冷色光，增加对比度
-    const fillLight = new THREE.PointLight(0x0044ff, 0.5, 100);
-    fillLight.position.set(-20, 10, -20);
-    scene.add(fillLight);
+    // --- 移除后期处理 (Unreal Bloom)，减轻负担 ---
+    // 原有的 composer 相关代码已移除，直接使用 renderer.render()
 
-    // --- 后期处理 (Bloom/辉光) ---
-    const renderScene = new THREE.RenderPass(scene, camera);
-    
-    // UnrealBloomPass 参数: 分辨率, 强度, 半径, 阈值
-    // 强度(1.5)和阈值(0.15)是关键，控制哪些物体发光以及发光的强烈程度
-    const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.8, 0.4, 0.15);
-
-    composer = new THREE.EffectComposer(renderer);
-    composer.addPass(renderScene);
-    composer.addPass(bloomPass);
-
-    // ================= MATERIALS (参考图风格) =================
-    // 关键：使用 Emissive 属性让物体自己发光，配合 Bloom 产生辉光
-    
-    const matGoldGlowing = new THREE.MeshStandardMaterial({ 
-        color: 0xffcc00, 
-        emissive: 0xffaa00, 
-        emissiveIntensity: 1.2, // 高发光强度
-        metalness: 0.8, roughness: 0.2 
-    });
-    
-    const matGoldDull = new THREE.MeshStandardMaterial({ 
-        color: 0xbbaa55, 
-        emissive: 0x443300,
-        emissiveIntensity: 0.2, // 低发光
-        metalness: 0.6, roughness: 0.5 
-    });
-
-    const matRed = new THREE.MeshStandardMaterial({ 
-        color: 0xdd0000, 
-        roughness: 0.4, 
-        metalness: 0.1 
-    });
-    
-    const matGreen = new THREE.MeshStandardMaterial({ 
-        color: 0x005522, 
-        roughness: 0.6,
-        metalness: 0.1
-    });
+    // ================= MATERIALS (简化) =================
+    const matGlowing = new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 0.9 }); // 基础发光材质
+    const matRed = new THREE.MeshBasicMaterial({ color: 0xdd0000 });
+    const matGreen = new THREE.MeshBasicMaterial({ color: 0x00aa44 });
 
     // ================= CREATE PARTICLES =================
     const particles = [];
     
-    // 预定义几何体以提升性能
-    const geoCubeSmall = new THREE.BoxGeometry(0.8, 0.8, 0.8);
-    const geoCubeMedium = new THREE.BoxGeometry(1.5, 1.5, 1.5);
-    const geoSphereSmall = new THREE.SphereGeometry(0.6, 16, 16);
-    const geoSphereMedium = new THREE.SphereGeometry(1.2, 16, 16);
+    // 使用更简单的几何体
+    const geoSphereTiny = new THREE.SphereGeometry(0.3, 8, 8); // 更低面数
+    const geoBoxTiny = new THREE.BoxGeometry(0.5, 0.5, 0.5);
 
     for (let i = 0; i < PARTICLE_COUNT; i++) {
         let mesh;
         const rand = Math.random();
 
-        // 根据参考图比例分配元素
-        if (rand > 0.6) {
-            // 40% 是小的发光金方块/球体 (参考图中的金色亮点)
-            const geo = Math.random() > 0.5 ? geoCubeSmall : geoSphereSmall;
-            mesh = new THREE.Mesh(geo, matGoldGlowing);
-        } else if (rand > 0.35) {
-             // 25% 红色球体 (装饰品)
-            mesh = new THREE.Mesh(geoSphereMedium, matRed);
-        } else if (rand > 0.15) {
-             // 20% 绿色方块 (礼物盒)
-            mesh = new THREE.Mesh(geoCubeMedium, matGreen);
-        } else {
-            // 15% 较大的暗金色物体
-             mesh = new THREE.Mesh(geoCubeMedium, matGoldDull);
+        if (rand < 0.5) { // 50% 发光球
+            mesh = new THREE.Mesh(geoSphereTiny, matGlowing);
+        } else if (rand < 0.75) { // 25% 红色球
+            mesh = new THREE.Mesh(geoSphereTiny, matRed);
+        } else { // 25% 绿色方块
+            mesh = new THREE.Mesh(geoBoxTiny, matGreen);
         }
 
-        // --- 树形态位置计算 (更密集的圆锥) ---
-        const p = i / PARTICLE_COUNT; // 0 到 1
-        // 使用幂函数让底部更密集，顶部更尖
+        // --- 树形态位置计算 (保持原有的圆锥结构) ---
+        const p = i / PARTICLE_COUNT;
         const heightProgress = Math.pow(p, 0.8); 
         const yTree = heightProgress * TREE_HEIGHT - (TREE_HEIGHT / 2);
         const radiusAtY = TREE_BASE_RADIUS * (1 - heightProgress);
         
-        // 螺旋角度更紧密
-        const angle = i * 0.5 + Math.random() * 0.2; 
-        // 增加随机半径偏移，让树看起来更有厚度，不是空心的
-        const randomRadiusOffset = Math.random() * radiusAtY * 0.6;
+        const angle = i * 0.7 + Math.random() * 0.5; // 更稀疏的螺旋
+        const randomRadiusOffset = Math.random() * radiusAtY * 0.4; // 较小偏移
         
         const xTree = Math.cos(angle) * (radiusAtY - randomRadiusOffset);
         const zTree = Math.sin(angle) * (radiusAtY - randomRadiusOffset);
         
-        // --- 爆炸形态位置计算 (更广阔、更混沌) ---
-        // 使用高斯分布式的随机，让中心更密集，边缘更稀疏
-        const explodeR = (Math.random() * 0.3 + Math.pow(Math.random(), 2) * 0.7) * 55 + 5; 
+        // --- 爆炸形态位置计算 (简化) ---
+        const explodeR = (Math.random() * 0.5 + 0.5) * 40; // 较小爆炸范围
         const theta = Math.random() * Math.PI * 2;
         const phi = Math.acos((Math.random() * 2) - 1);
         
         const xExp = explodeR * Math.sin(phi) * Math.cos(theta);
-        const yExp = explodeR * Math.sin(phi) * Math.sin(theta) * 1.2; // y轴稍微拉伸一点
+        const yExp = explodeR * Math.sin(phi) * Math.sin(theta);
         const zExp = explodeR * Math.cos(phi);
 
         mesh.userData = {
             treePos: new THREE.Vector3(xTree, yTree, zTree),
             explodePos: new THREE.Vector3(xExp, yExp, zExp),
-            // 随机自转速度
-            rotSpeed: new THREE.Vector3(
-                (Math.random()-0.5)*0.05, 
-                (Math.random()-0.5)*0.05, 
-                (Math.random()-0.5)*0.05
+            rotSpeed: new THREE.Vector3( // 稍微慢一些的旋转速度
+                (Math.random()-0.5)*0.03, 
+                (Math.random()-0.5)*0.03, 
+                (Math.random()-0.5)*0.03
             ),
-            // 随机初始旋转
             initialRot: new THREE.Euler(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI)
         };
 
@@ -242,40 +161,16 @@
         particles.push(mesh);
     }
     
-    // --- 树顶大星星/菱形 (参考图2) ---
-    const topStarGeo = new THREE.OctahedronGeometry(3, 0); // 八面体看起来像菱形
-    // 使用超高发光强度的材质
-    const topStarMat = new THREE.MeshStandardMaterial({ 
-        color: 0xffff00, 
-        emissive: 0xffffaa, 
-        emissiveIntensity: 3.0, // 极亮
-        roughness: 0.1, metalness: 1.0
-    });
+    // --- 树顶小星星 (简化为普通材质) ---
+    const topStarGeo = new THREE.OctahedronGeometry(1.5, 0); // 更小
+    const topStarMat = new THREE.MeshBasicMaterial({ color: 0xffff00 }); // 普通黄色
     const topStar = new THREE.Mesh(topStarGeo, topStarMat);
-    topStar.position.set(0, TREE_HEIGHT/2 + 3, 0);
+    topStar.position.set(0, TREE_HEIGHT/2 + 1.5, 0);
     scene.add(topStar);
-    // 添加一个点光源跟随星星，照亮顶部
-    const starLight = new THREE.PointLight(0xffffaa, 2, 30);
-    topStar.add(starLight);
 
-
-    // --- 背景星尘 (增加氛围感) ---
-    const starsGeo = new THREE.BufferGeometry();
-    const starsVertices = [];
-    for (let i = 0; i < 800; i++) {
-        const x = (Math.random() - 0.5) * 300;
-        const y = (Math.random() - 0.5) * 300;
-        const z = (Math.random() - 0.5) * 300;
-        starsVertices.push(x, y, z);
-    }
-    starsGeo.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
-    const starsMat = new THREE.PointsMaterial({ color: 0x666666, size: 0.5, transparent: true, opacity: 0.8 });
-    const starField = new THREE.Points(starsGeo, starsMat);
-    scene.add(starField);
-
+    // --- 移除背景星尘，进一步减轻渲染压力 ---
 
     // ================= HAND TRACKING LOGIC =================
-    // (这部分逻辑与之前保持基本一致，但调整了灵敏度)
     const videoElement = document.getElementById('input_video');
     const statusElement = document.getElementById('hand-status');
     const loaderElement = document.getElementById('loader');
@@ -296,28 +191,26 @@
             });
             const avgDist = totalDist / 5;
             
-            // 调整灵敏度映射
             let openess = (avgDist - 0.08) * 4; 
             openess = Math.max(0, Math.min(1, openess));
             
-            // 增加一个非线性曲线，让炸开的感觉更具爆发力
-            targetExplosionFactor = Math.pow(openess, 1.5);
+            targetExplosionFactor = Math.pow(openess, 1.2); // 稍微减弱爆炸爆发力
 
             statusElement.innerHTML = openess > 0.5 ? "👐 已张开" : "✊ 已聚合";
             statusElement.style.color = openess > 0.5 ? "#ff3333" : "#ffffff";
         } else {
             statusElement.innerHTML = "等待摄像头...";
-             statusElement.style.color = "#ffffff";
+            statusElement.style.color = "#ffffff";
         }
     }
 
     const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
-    hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+    hands.setOptions({ maxNumHands: 1, modelComplexity: 0, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 }); // modelComplexity: 0 更快但可能精度稍低
     hands.onResults(onResults);
 
     const cameraUtils = new Camera(videoElement, {
         onFrame: async () => await hands.send({image: videoElement}),
-        width: 320, height: 240
+        width: 160, height: 120 // 更低的摄像头分辨率
     });
     cameraUtils.start();
 
@@ -328,49 +221,30 @@
         requestAnimationFrame(animate);
         const time = clock.getElapsedTime();
 
-        // 平滑插值，炸开时快一点，聚合时慢一点
-        const lerpSpeed = targetExplosionFactor > currentExplosionFactor ? 0.08 : 0.04;
+        const lerpSpeed = targetExplosionFactor > currentExplosionFactor ? 0.06 : 0.03; // 更平滑的插值速度
         currentExplosionFactor += (targetExplosionFactor - currentExplosionFactor) * lerpSpeed;
 
-        // 整体旋转
-        const baseRotationSpeed = 0.002;
-        // 炸开时旋转速度增加，增加混乱感
-        scene.rotation.y += baseRotationSpeed + currentExplosionFactor * 0.005;
+        // 整体缓慢旋转
+        scene.rotation.y += 0.001; 
 
         // 树顶星星动画
-        topStar.rotation.y = time * 0.5;
-        // 呼吸灯效果
-        topStarMat.emissiveIntensity = 2.5 + Math.sin(time * 2) * 0.5;
-        starLight.intensity = topStarMat.emissiveIntensity;
-
-        // 背景缓慢移动
-        starField.rotation.y += 0.0005;
-        starField.rotation.x += 0.0002;
+        topStar.rotation.y = time * 0.3;
 
         // 更新粒子
         particles.forEach(p => {
             const targetPos = new THREE.Vector3().lerpVectors(p.userData.treePos, p.userData.explodePos, currentExplosionFactor);
+            p.position.lerp(targetPos, 0.08); // 更平滑的移动
             
-            // 聚合时，给予一点噪点波动，让树看起来是“活的”
-            if (currentExplosionFactor < 0.1) {
-                targetPos.x += Math.sin(time * 2 + p.position.y) * 0.1;
-                targetPos.z += Math.cos(time * 2 + p.position.y) * 0.1;
-            }
-            
-            p.position.lerp(targetPos, 0.1);
-            
-            // 持续自转
             p.rotation.x += p.userData.rotSpeed.x;
             p.rotation.y += p.userData.rotSpeed.y;
             p.rotation.z += p.userData.rotSpeed.z;
 
-            // 炸开时稍微放大
-            const scale = 1 + currentExplosionFactor * 0.3;
-             p.scale.setScalar(scale);
+            // 炸开时稍微放大，但幅度更小
+            const scale = 1 + currentExplosionFactor * 0.1; 
+            p.scale.setScalar(scale);
         });
 
-        // 重要：使用 composer 渲染，而不是 renderer
-        composer.render();
+        renderer.render(scene, camera); // 直接用 renderer 渲染
     }
 
     animate();
@@ -380,12 +254,6 @@
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
-        composer.setSize(window.innerWidth, window.innerHeight); // 更新 composer 尺寸
-    });
-
-    document.getElementById('fullscreen-btn').addEventListener('click', () => {
-        if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-        else if (document.exitFullscreen) document.exitFullscreen();
     });
 
 </script>
